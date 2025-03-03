@@ -339,22 +339,16 @@ def insert_storage_log():
         mycursor = mydb.cursor()
 
         #Query if storage device already exists in database.
-        mycursor.execute(f"SELECT * FROM `storage` WHERE `storage_id` = '{storage_id}'")
+        mycursor.execute(f"SELECT * FROM `sg_storage` WHERE `device_id` = '{device_id}'")
         storage_device_exists = mycursor.fetchall()
     
         #Check if storage ID is valid and insert storage log.
         if len(storage_device_exists) == 0:
-            sql = "INSERT INTO storage (storage_id, device_id, storage_name, storage_status, check_date, check_time) VALUES (%s, %s, %s, %s, %s, %s)"
-            values = (storage_id, int(device_id), storage_name, storage_status, check_date, check_time)
+            sql = "INSERT INTO sg_storage (device_id, storage_id, storage_name, storage_status, check_date, check_time) VALUES (%s, %s, %s, %s, %s, %s)"
+            values = (int(device_id), storage_id, storage_name, storage_status, check_date, check_time)
             mycursor.execute(sql, values)
             mydb.commit()
             return ("Record inserted successfully.")
-        elif len(storage_device_exists) > 0:
-            sql = "UPDATE storage SET storage_name = %s, storage_status = %s, check_date = %s, check_time = %s WHERE storage_id = %s"
-            values = (storage_name, storage_status, check_date, check_time, storage_id)
-            mycursor.execute(sql,values)
-            mydb.commit()
-            return ("Record updated successfully.")
         else:
             return ("Storage record already exists in database.")
         
@@ -365,36 +359,34 @@ def get_storage_logs():
     #Request parameters.
     if request.method == 'POST':
         storage_id = request.form['storage_id']
+        iccid = request.form['iccid']
 
         mycursor = mydb.cursor()
 
-        #Query database for existing camera records.
-        mycursor.execute(f"SELECT * FROM `storage` WHERE `storage_id` = '{storage_id}'")
-        stored_camera = mycursor.fetchall()
+        mycursor.execute("SELECT sg_storage.device_id FROM sg_storage INNER JOIN sg_devices ON sg_devices.device_id = sg_storage.device_id WHERE sg_storage.storage_id = '%s'" % storage_id + " AND sg_devices.iccid = '%s' AND sg_devices.device_type = '1'" % iccid)
+        get_device_id = mycursor.fetchall()
 
         getData = []
 
-        for data in stored_camera:
-            getData = {"id" : data[0], "name" : data[2], "status" : data[3]}
+        if len(get_device_id) > 0:
+            for data in get_device_id:
+                device_id = str(data[0])
 
-        return getData
-    
+            getData = []
 
-#Get storage status by storage ID.
-@app.route('/storageLogs/getStatus/<int:storage_id>')
-def storageStatus(storage_id):
+            #Query database for existing camera records.
+            mycursor.execute(f"SELECT * FROM `storage` WHERE `device_id` = '{device_id}'")
+            stored_camera = mycursor.fetchall()
 
-    mycursor = mydb.cursor()
-    
-    #Check if storage ID is valid and return storage name and status.
-    if storage_id > 0:
-        mycursor.execute(f"SELECT storage_name, storage_status FROM storage WHERE storage_id = {storage_id}")
-    
-        myresult = mycursor.fetchall()
-        
-        return myresult
-    else:
-        return ("Please enter a valid storage ID.")
+            if len(stored_camera) > 0:
+                for data in stored_camera:
+                    getData = {"device_id" : data[0], "storage_id" : data[1], "name" : data[2], "status" : data[3]}
+                return getData
+            else:
+                getData = {"device_id" : '', "storage_id" : '', "name" : '', "status" : ''}
+                return getData
+        else:
+            return getData
 
 
 #Update storage status.
@@ -403,26 +395,25 @@ def updateStatus():
 
     #Request parameters.
     if request.method == 'POST':
-        storage_id = request.form['storage_id']
-        changelog_id = request.form['changelog_id']
+        device_id = request.form['device_id']
+        storage_name = request.form['storage_name']
         storage_status = request.form['storage_status']
-        previous_status = request.form['previous_status']
-        current_status = request.form['current_status']
-        changelog_date = request.form['changelog_date']
-        changelog_time = request.form['changelog_time']
+        check_date = request.form['check_date']
+        check_time = request.form['check_time']
 
         mycursor = mydb.cursor()
-        
-        #Check if storage ID is valid and so to update storage status, and create a new changelog entry of the status change.
-        if int(storage_id) > 0:
-            mycursor.execute(f"UPDATE `storage` SET `storage_status` = '{storage_status}', `check_date` = '{changelog_date}', `check_time` = '{changelog_time}' WHERE `storage_id` = '{storage_id}'")
-            
-            mycursor.execute(f"INSERT INTO `changelog` (`changelog_id`, `device_id`, `changelog_desc`, `previous_status`, `current_status`, `changelog_date`, `changelog_time`) VALUES ('{changelog_id}', '1', 'Status changed', '{previous_status}', '{current_status}', '{changelog_date}', '{changelog_time}')")
-            
+
+        #Query if storage device already exists in database.
+        mycursor.execute(f"SELECT * FROM `sg_storage` WHERE `device_id` = '{device_id}'")
+        storage_device_exists = mycursor.fetchall()
+    
+        #Check if storage ID is valid and insert storage log.
+        if len(storage_device_exists) > 0:
+            mycursor.execute(f"UPDATE `sg_storage` SET `storage_name` = '{storage_name}', `storage_status` = '{storage_status}', `check_date` = '{check_date}', `check_time` = '{check_time}' WHERE `device_id` = '{device_id}'")
             mydb.commit()
-            myresult = mycursor.fetchall()
-            
-            return myresult
+            return ("Storage record updated successfully.")
+        else:
+            return ("No storage record found to update.")
 
 
 ###########################################################################
