@@ -7,6 +7,7 @@ username = "admin"
 password = "Concept1"
 iccid = "8935711001091680394"
 db_address = "https://em8database.com/api"
+#db_address = "http://127.0.0.1:5000"
 
 
 #Get a random value in maximum integer range for the video log ID.
@@ -58,8 +59,9 @@ def storage_changelog():
         storage_records = requests.post(url=URL, data=PARAMS)
 
         #If query returns results, loop through and save found values to an array for comparison. 
-        if len(storage_records.text) > 0 and storage_records.status_code != 500:
+        if len(storage_records.text) > 3 and storage_records.status_code != 500:
             storage_values = storage_records.json()
+            print(storage_values)
             stored_storage_data.append([storage_values["device_id"], storage_values["storage_id"], storage_values["name"], storage_values["status"]])
         else:
             #If first entry input null value.
@@ -126,7 +128,7 @@ def insert_storage_log():
             PARAMS = {'device_id': storage_values["device_id"], 'storage_name': json_hdd["hddName"], 'storage_status': json_hdd["status"], 'check_date': datetime.now().strftime("%Y-%m-%d"), 'check_time': datetime.now().strftime("%H:%M:%S")}
 
             #Define URL for API call to post acquired storage data for insertion into database.
-            URL = ("%s/storage/updateStorageLog" % db_address)
+            URL = ("%s/storage/updateStorage" % db_address)
             
             r = requests.post(url=URL, data=PARAMS)
             print(r.text)
@@ -139,15 +141,17 @@ def insert_storage_log():
             PARAMS = {'device_id': new_device_id, 'storage_id': json_hdd["id"], 'storage_name': json_hdd["hddName"], 'storage_status': json_hdd["status"], 'check_date': datetime.now().strftime("%Y-%m-%d"), 'check_time': datetime.now().strftime("%H:%M:%S")}
 
             #Define URL for API call to post acquired storage data for insertion into database.
-            URL = ("%s/storage/inputStorageLog" % db_address)
+            URL = ("%s/storage/inputStorage" % db_address)
             
             r = requests.post(url=URL, data=PARAMS)
             print(r.text)
 
     else:
         print(response.status_code)
-
+        
     
+#print(check_license.get_license(iccid))
+
 #Get data from API of whether the Pi has been activated or is suspended and if to continue with processing. 
 if check_license.get_license(iccid) == True:
     #Insert or update storage records in the database. Insert any changes into changelog table.

@@ -1,4 +1,4 @@
-import requests, xmltodict, check_license
+import requests, xmltodict, re, check_license
 from datetime import date, datetime
 
 #Temporary variables for testing.
@@ -29,6 +29,25 @@ def get_new_device_id():
     return new_device_id
 
 
+def system_check_datetime():
+    #Request url.
+    request_url = ("http://%s/ISAPI/System/time" % ipAddress)
+    auth = requests.auth.HTTPDigestAuth(username, password)
+    response = requests.get(request_url, auth=auth)
+
+    #Response code check.
+    if response.status_code == 200:
+
+        #Convert response to json.
+        json_data = xmltodict.parse(response.content)
+        system_datetime = json_data["Time"]["localTime"]
+        current_date = date.today()
+        current_time = datetime.now().strftime("%H:%M:%S")
+        datetime_array = re.split('T|\+', str(system_datetime))
+        
+        print(f"{current_date} : {datetime_array[0]} \n")
+
+#Check if any changes have occurred between last check and current system values.
 def system_changelog():
     #Request url.
     request_url = ("http://%s/ISAPI/System/deviceInfo" % ipAddress)
@@ -144,7 +163,7 @@ def insert_system_info():
 
         system_exists = requests.post(url=URL, data=PARAMS)
         
-        #If response code is 200 then the record exists and to update it. Else input a new record. 
+        #If response length is greater than 3 then the record exists and to update it. Else input a new record. 
         if len(system_exists.text) > 3 and system_exists.status_code != 500:
             URL = ("%s/system/updateSystem" % db_address)
 
@@ -153,7 +172,7 @@ def insert_system_info():
             r = requests.post(url=URL, data=PARAMS)
 
             print(r.text)
-        else:
+        elif system_exists.status_code != 500:
 
             new_device_id = get_new_device_id()
 
@@ -163,7 +182,9 @@ def insert_system_info():
 
             r = requests.post(url=URL, data=PARAMS)
 
-            print(r.text)   
+            print(r.text) 
+        else:
+            print("Server Error Status Code: %s" % system_exists.status_code)  
     else:
         print(response.status_code)
 
@@ -180,7 +201,8 @@ def insert_system_info():
 #Get data from API of whether the Pi has been activated or is suspended and if to continue with processing. 
 if check_license.get_license(iccid) == True:
     #Call function to insert or update system table, and check for any changes to be inserted into changelog table.
-    system_changelog()
+    #system_changelog()
+    system_check_datetime()
 else:
     print("Pi not activated or license suspended.")
 

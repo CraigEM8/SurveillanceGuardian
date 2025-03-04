@@ -28,13 +28,7 @@ def get_new_device_id():
 
     return new_device_id
 
-
-#Get a random value in maximum integer range for the video log ID.
-def get_random_number():
-    random_number = random.randint(1, 2147483646)
-    return random_number
-
-
+#Before inserting/updating, compare if any changes have occurred and to insert change into changelog table.
 def camera_changelog():
     #Request url.
     request_url = ("http://%s/ISAPI/System/Video/inputs/channels" % ipAddress)
@@ -65,10 +59,10 @@ def camera_changelog():
             URL = ("%s/camera/getCamera" % db_address)
             PARAMS = {'camera_id' : camera_id, 'iccid' : iccid}
             stored_camera = requests.post(url=URL, data=PARAMS)
-            stored_values = stored_camera.json()
 
             #If query returns results, loop through and save found values to an array for comparison. 
-            if len(stored_values) > 0:
+            if len(stored_camera.text) > 3 and stored_camera.status_code != 500:
+                stored_values = stored_camera.json()
                 stored_video_data.append([stored_values["id"], stored_values["device_id"], stored_values["name"], stored_values["status"]])
             else:
                 #If first entry input null value.
@@ -106,7 +100,7 @@ def camera_changelog():
         else:
             print("No changes to be made.")
 
-
+#Call changelog function then insert or update camera record.
 def get_video_info():
     #Request url.
     request_url = ("http://%s/ISAPI/System/Video/inputs/channels" % ipAddress)
@@ -131,11 +125,11 @@ def get_video_info():
             PARAMS = {'camera_id' : str(data["id"]), 'iccid' : iccid}
 
             camera_exists = requests.post(url=URL, data=PARAMS)
-            camera_values = camera_exists.json()
-
 
             #If length of values returned is greater than 1 then the record exists and to update it. Else input a new record. 
-            if len(camera_values) > 0:
+            if len(camera_exists.text) > 3 and camera_exists.status_code != 500:
+                camera_values = camera_exists.json()
+
                 URL = ("%s/camera/updateCamera" % db_address)
 
                 PARAMS = {'device_id' : camera_values["device_id"], 'camera_name': data["name"], 'camera_status' : data["resDesc"], 'check_date': date.today(), 'check_time': datetime.now().strftime("%H:%M:%S")}
@@ -143,7 +137,7 @@ def get_video_info():
                 r = requests.post(url=URL, data=PARAMS)
 
                 print(r.text)
-            else:
+            elif camera_exists.status_code != 500:
 
                 new_device_id = get_new_device_id()
 
@@ -154,7 +148,8 @@ def get_video_info():
                 r = requests.post(url=URL, data=PARAMS)
 
                 print(r.text)
-            
+            else:
+                print("Server Error Status Code: %s" % camera_exists.status_code)
     else:
         print(response.text) 
 

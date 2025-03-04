@@ -324,7 +324,7 @@ def insert_changelog():
 
 
 #Input new storage log.
-@app.route('/storage/inputStorageLog', methods=['POST'])
+@app.route('/storage/inputStorage', methods=['POST'])
 def insert_storage_log():
 
     #Request parameters.
@@ -375,7 +375,7 @@ def get_storage_logs():
             getData = []
 
             #Query database for existing camera records.
-            mycursor.execute(f"SELECT * FROM `storage` WHERE `device_id` = '{device_id}'")
+            mycursor.execute(f"SELECT * FROM `sg_storage` WHERE `device_id` = '{device_id}'")
             stored_camera = mycursor.fetchall()
 
             if len(stored_camera) > 0:
@@ -390,7 +390,7 @@ def get_storage_logs():
 
 
 #Update storage status.
-@app.route('/storageLogs/updateStorageLog', methods=['POST'])
+@app.route('/storage/updateStorage', methods=['POST'])
 def updateStatus():
 
     #Request parameters.
