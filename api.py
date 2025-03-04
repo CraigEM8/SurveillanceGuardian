@@ -448,7 +448,7 @@ def get_system():
 
             if len(stored_system) > 0:
                 for data in stored_system:
-                    getData = {"id" : data[0], "device_id" : data[1], "name" : data[2], "status" : data[3], "firmware" : data[4]}
+                    getData = {"id" : data[0], "device_id" : data[1], "name" : data[2], "status" : data[3], "firmware" : data[4], "datetime" : data[5]}
                 return getData
             else:
                 return getData
@@ -467,6 +467,7 @@ def insert_system():
         system_name = request.form['system_name']
         system_status = request.form['system_status']
         system_firmware = request.form['system_firmware']
+        system_datetime = request.form['system_datetime']
         check_date = request.form['check_date']
         check_time = request.form['check_time']
 
@@ -478,9 +479,9 @@ def insert_system():
 
         #If system does not exist go to insert database record.
         if len(system_exists) == 0:
-            mycursor.execute(f"INSERT INTO `sg_system` (`system_id`, `device_id`, `system_name`, `system_status`, `system_firmware`, `check_date`, `check_time`) VALUES ('{system_id}', '{device_id}', '{system_name}', '{system_status}', '{system_firmware}', '{check_date}', '{check_time}')")
+            mycursor.execute(f"INSERT INTO `sg_system` (`system_id`, `device_id`, `system_name`, `system_status`, `system_firmware`, `system_datetime`, `check_date`, `check_time`) VALUES ('{system_id}', '{device_id}', '{system_name}', '{system_status}', '{system_firmware}', '{system_datetime}', '{check_date}', '{check_time}')")
             mydb.commit()
-            return ("record input")
+            return ("New System Record Input.")
         else:
             return ("System record already exists in database.")
         
@@ -495,6 +496,7 @@ def update_system():
         system_name = request.form['system_name']
         system_status = request.form['system_status']
         system_firmware = request.form['system_firmware']
+        system_datetime = request.form['system_datetime']
         iccid = request.form['iccid']
         check_date = request.form['check_date']
         check_time = request.form['check_time']
@@ -513,9 +515,9 @@ def update_system():
 
         #If system exists go to update database record.
         if len(system_exists) > 0:
-            mycursor.execute(f"UPDATE `sg_system` SET `system_name` = '{system_name}', `system_status` = '{system_status}', `system_firmware` = '{system_firmware}', `check_date` = '{check_date}', `check_time` = '{check_time}' WHERE `system_id` = '{system_id}'")
+            mycursor.execute(f"UPDATE `sg_system` SET `system_name` = '{system_name}', `system_status` = '{system_status}', `system_firmware` = '{system_firmware}', `system_datetime` = '{system_datetime}', `check_date` = '{check_date}', `check_time` = '{check_time}' WHERE `device_id` = '{device_id}'")
             mydb.commit()
-            return ("record updated")
+            return ("System Record Updated.")
         else:
             return ("No System ID found.")
         

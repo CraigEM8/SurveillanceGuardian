@@ -1,4 +1,4 @@
-import requests, xmltodict, random, check_license
+import requests, xmltodict, check_license
 from datetime import date, datetime
 
 #Temporary variables for testing.
@@ -8,12 +8,6 @@ password = "Concept1"
 iccid = "8935711001091680394"
 db_address = "https://em8database.com/api"
 #db_address = "http://127.0.0.1:5000"
-
-
-#Get a random value in maximum integer range for the video log ID.
-def get_random_number():
-    random_number = random.randint(1, 2147483646)
-    return random_number
 
 
 #Make API calls to get new device ID, insert record, and return the ID.

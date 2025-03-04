@@ -1,13 +1,13 @@
 import requests, xmltodict, re, check_license
-from datetime import date, datetime
+from datetime import date, datetime, time
 
 #Temporary variables for testing.
 ipAddress = "192.168.1.143"
 username = "admin"
 password = "Concept1"
-iccid = "8935711001091680386"
-db_address = "https://em8database.com/api"
-
+iccid = "8935711001091680394"
+#db_address = "https://em8database.com/api"
+db_address = "http://127.0.0.1:5000"
 
 #Make API calls to get new device ID, insert record, and return the ID.
 def get_new_device_id():
@@ -29,6 +29,7 @@ def get_new_device_id():
     return new_device_id
 
 
+#Return the comparision of current time and system time.
 def system_check_datetime():
     #Request url.
     request_url = ("http://%s/ISAPI/System/time" % ipAddress)
@@ -40,12 +41,33 @@ def system_check_datetime():
 
         #Convert response to json.
         json_data = xmltodict.parse(response.content)
-        system_datetime = json_data["Time"]["localTime"]
+        json_system_datetime = json_data["Time"]["localTime"]
         current_date = date.today()
         current_time = datetime.now().strftime("%H:%M:%S")
-        datetime_array = re.split('T|\+', str(system_datetime))
+        datetime_array = re.split('T|\+', str(json_system_datetime))
+        current_time_array = re.split(':', str(current_time))
+        system_time_array = re.split(':', datetime_array[1])
         
-        print(f"{current_date} : {datetime_array[0]} \n")
+        system_time = time(int(system_time_array[0]), int(system_time_array[1]), int(system_time_array[2]))
+
+        #Get time ranges +/-5 of current time to compare if system time is within range. If 5 minutes to/from the hour, calculate correct time range.
+        if int(current_time_array[1]) <= int('05'):
+            min_time = time(int(current_time_array[0]) - 1, (int(current_time_array[1]) + 50), int(current_time_array[2]))
+            max_time = time(int(current_time_array[0]), (int(current_time_array[1]) + 5), int(current_time_array[2]))
+        elif int(current_time_array[1]) >= 55:
+            min_time = time(int(current_time_array[0]), (int(current_time_array[1]) - 5), int(current_time_array[2]))
+            max_time = time(int(current_time_array[0]) + 1, (int(current_time_array[1]) - 50), int(current_time_array[2]))
+        else:
+            min_time = time(int(current_time_array[0]), (int(current_time_array[1]) - 5), int(current_time_array[2]))
+            max_time = time(int(current_time_array[0]), (int(current_time_array[1]) + 5), int(current_time_array[2]))
+
+        #If system datetime is the same as current datetime then return 0.
+        if datetime_array[0] == str(current_date):
+            if system_time > min_time and system_time < max_time:
+                return "0"
+            else:
+                return "1"
+
 
 #Check if any changes have occurred between last check and current system values.
 def system_changelog():
@@ -73,14 +95,15 @@ def system_changelog():
         URL = ("%s/system/getSystem" % db_address)
         PARAMS = {'system_id' : json_system["deviceID"], 'iccid' : iccid}
         stored_system = requests.post(url=URL, data=PARAMS)
+        system_datetime = system_check_datetime()
 
         #If query returns results response code is not 500, loop through and save found values to an array for comparison. 
         if len(stored_system.text) > 3 and stored_system.status_code != 500:
             stored_values = stored_system.json()
-            stored_system_data.append([stored_values["id"], stored_values["device_id"], stored_values["name"], stored_values["status"], stored_values["firmware"]])
+            stored_system_data.append([stored_values["id"], stored_values["device_id"], stored_values["name"], stored_values["status"], stored_values["firmware"], stored_values["datetime"]])
         else:
             #If first entry input null value.
-            stored_system_data.append(["null", "null", "null", "null", "null"])
+            stored_system_data.append(["null", "null", "null", "null", "null", "null"])
         
         #Iterate through and compare data from API to database array, provided a database entry exists.
         if len(stored_system_data) > 0:
@@ -124,7 +147,20 @@ def system_changelog():
                         #Append changelog entry to array.
                         changelog_data.append([changelog_id, stored_system_data[i][1], "firmware changed", stored_system_data[i][4], current_system_data[i][3], date.today(), datetime.now().strftime("%H:%M:%S")])
                         
-                        print(f'{current_system_data[i][0]} name changed from output {stored_system_data[i][4]} to {current_system_data[i][3]} at {datetime.now().strftime("%H:%M:%S")}.')
+                        print(f'{current_system_data[i][0]} firmware changed from output {stored_system_data[i][4]} to {current_system_data[i][3]} at {datetime.now().strftime("%H:%M:%S")}.')
+
+                    #Check if system datetime has changed.
+                    if str(system_datetime) != str(stored_system_data[i][5]):
+
+                        #Call API to get changelog ID.
+                        URL = ("%s/changelog/getNewID" % db_address)
+                        get_new_changelog_id = requests.get(url=URL)
+                        changelog_id = get_new_changelog_id.text
+
+                        #Append changelog entry to array.
+                        changelog_data.append([changelog_id, stored_system_data[i][1], "showing correct datetime changed", stored_system_data[i][5], system_datetime, date.today(), datetime.now().strftime("%H:%M:%S")])
+                        
+                        print(f'{current_system_data[i][0]} datetime changed showing correct output {stored_system_data[i][5]} to {system_datetime} at {datetime.now().strftime("%H:%M:%S")}.')
 
                     else:
                         print(f'{current_system_data[i][1]} is showing no changes at {datetime.now().strftime("%H:%M:%S")}.')
@@ -162,12 +198,13 @@ def insert_system_info():
         PARAMS = {'system_id': json_system["deviceID"], 'iccid' : iccid}
 
         system_exists = requests.post(url=URL, data=PARAMS)
+        system_datetime = system_check_datetime()
         
         #If response length is greater than 3 then the record exists and to update it. Else input a new record. 
         if len(system_exists.text) > 3 and system_exists.status_code != 500:
             URL = ("%s/system/updateSystem" % db_address)
 
-            PARAMS = {'system_id': json_system["deviceID"], 'system_name': json_system["deviceName"], 'system_status' : 'True', 'system_firmware': json_system["firmwareVersion"], 'iccid' : iccid, 'check_date': date.today(), 'check_time': datetime.now().strftime("%H:%M:%S")}
+            PARAMS = {'system_id': json_system["deviceID"], 'system_name': json_system["deviceName"], 'system_status' : 'True', 'system_firmware': json_system["firmwareVersion"], 'system_datetime': system_datetime, 'iccid' : iccid, 'check_date': date.today(), 'check_time': datetime.now().strftime("%H:%M:%S")}
             
             r = requests.post(url=URL, data=PARAMS)
 
@@ -178,7 +215,7 @@ def insert_system_info():
 
             URL = ("%s/system/inputSystem" % db_address)
 
-            PARAMS = {'system_id': json_system["deviceID"], 'device_id': new_device_id, 'system_name': json_system["deviceName"], 'system_status' : 'True', 'system_firmware': json_system["firmwareVersion"], 'check_date': date.today(), 'check_time': datetime.now().strftime("%H:%M:%S")}
+            PARAMS = {'system_id': json_system["deviceID"], 'device_id': new_device_id, 'system_name': json_system["deviceName"], 'system_status' : 'True', 'system_firmware': json_system["firmwareVersion"], 'system_datetime': system_datetime, 'check_date': date.today(), 'check_time': datetime.now().strftime("%H:%M:%S")}
 
             r = requests.post(url=URL, data=PARAMS)
 
@@ -189,20 +226,10 @@ def insert_system_info():
         print(response.status_code)
 
 
-#############################################
-
-#CHECK SYSTEM TIME WITH LOCAL TIME
-
-# /ISAPI/System/time
-
-#############################################
-
-
 #Get data from API of whether the Pi has been activated or is suspended and if to continue with processing. 
 if check_license.get_license(iccid) == True:
     #Call function to insert or update system table, and check for any changes to be inserted into changelog table.
-    #system_changelog()
-    system_check_datetime()
+    system_changelog()
 else:
     print("Pi not activated or license suspended.")
 
