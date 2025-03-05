@@ -2,6 +2,10 @@
 
 echo "Installing Python and Dependencies..."
 sudo apt-get install python3
+sudo apt-get install python3-pip
+sudo apt-get install rpi-connect-lite
+rpi-connect on
+rpi-connect signin
 pip install pymysql --break-system-packages
 pip install Flask==3.1.0 --break-system-packages
 pip install flask-sqlalchemy==3.0.0 --break-system-packages
@@ -11,6 +15,7 @@ pip install os-sys==2.1.4 --break-system-packages
 pip install requests==2.32.3 --break-system-packages
 pip install xmltodict==0.14.2 --break-system-packages
 pip install netifaces --break-system-packages
+pip3 install pyserial --break-system-packages
 echo "Process Complete."
 
 echo "Installing Minicom..."
