@@ -561,7 +561,7 @@ def get_pi():
         mycursor = mydb.cursor()
 
         #Query if Pi already exists in database.
-        mycursor.execute(f"SELECT `eth_address`, `ppp_address` FROM `sg_pi` WHERE `iccid` = '{iccid}'")
+        mycursor.execute(f"SELECT `eth_address`, `ppp_address`, `sim_carrier`, `sim_signal` FROM `sg_pi` WHERE `iccid` = '{iccid}'")
         pi_exists = mycursor.fetchall()
 
         #If Pi exists return database values.
@@ -572,14 +572,16 @@ def get_pi():
         
 
 #Update an existing Pi record by ICCID.
-@app.route('/pi/updateIP', methods=['POST'])
-def update_ip():
+@app.route('/pi/updatePI', methods=['POST'])
+def update_pi():
 
     #Request parameters.
     if request.method == 'POST':
         iccid = request.form['iccid']
         eth_address = request.form['eth_address']
         ppp_address = request.form['ppp_address']
+        sim_carrier = request.form['sim_carrier']
+        sim_signal = request.form['sim_signal']
         check_date = request.form['check_date']
         check_time = request.form['check_time']
 
@@ -591,9 +593,9 @@ def update_ip():
 
         #If Pi exists go to update database record.
         if len(pi_exists) > 0:
-            mycursor.execute(f"UPDATE `sg_pi` SET `eth_address` = '{eth_address}', `ppp_address` = '{ppp_address}', `check_date` = '{check_date}', `check_time` = '{check_time}' WHERE `iccid` = '{iccid}'")
+            mycursor.execute(f"UPDATE `sg_pi` SET `eth_address` = '{eth_address}', `ppp_address` = '{ppp_address}', `sim_carrier` = '{sim_carrier}', `sim_signal` = '{sim_signal}', `check_date` = '{check_date}', `check_time` = '{check_time}' WHERE `iccid` = '{iccid}'")
             mydb.commit()
-            return ("record updated")
+            return ("Pi Record Updated.")
         else:
             return ("No ICCID found.")
 
