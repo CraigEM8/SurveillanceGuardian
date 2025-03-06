@@ -1,19 +1,15 @@
-import requests
-
-iccid = "8935711001091680394"
-db_address = "https://em8database.com/api"
-#db_address = "http://127.0.0.1:5000"
+import requests, credentials
 
 #Before any computation takes place, check if the Pi ICCID license is active.
 def get_license(iccid):
 
     #Call API to get Pi licensing data.
-    URL = ("%s/pi/getLicense" % db_address)
+    URL = ("%s/pi/getLicense" % credentials.db_address)
     PARAMS = {'iccid' : iccid}
     pi_values = requests.post(url=URL, data=PARAMS)
 
     #Check if server returns internal error code.
-    if pi_values.status_code != 500:
+    if pi_values.status_code != 500 and pi_values.text != "No ICCID found.":
         #If server responds, get active and suspend status from response.
         pi_values_json = pi_values.json()
         pi_active_status = pi_values_json[0][0]

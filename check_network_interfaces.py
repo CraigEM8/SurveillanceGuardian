@@ -1,8 +1,5 @@
-import netifaces, requests, serial, re, os, subprocess, time, check_license
+import netifaces, requests, serial, re, os, subprocess, time, check_license, credentials, get_iccid
 from datetime import date, datetime
-
-iccid = "8935711001091680394"
-db_address = "https://em8database.com/api"
 
 
 #Check if interface is live.
@@ -119,20 +116,20 @@ def get_sim_carrier():
 def pi_changelog():
 
     #Call API to check if system ID exists.
-    URL = ("%s/pi/getInfo" % db_address)
+    URL = ("%s/pi/getInfo" % credentials.db_address)
     PARAMS = {'iccid' : iccid}
     stored_pi_values = requests.post(url=URL, data=PARAMS).json()
 
     #Switch off serial connection to allow AT commands to be sent.
     subprocess.Popen('sudo poff clipper', shell=True)
-    time.sleep(30)
+    time.sleep(20)
 
     sim_carrier = get_sim_carrier()
     sim_signal = get_signal_strength()
 
     #Switch on serial connection to get IP address and for further functionality.
     subprocess.Popen('sudo pon clipper', shell=True)
-    time.sleep(30)
+    time.sleep(20)
 
     current_pi_values = get_ip_list()
     changelog_data = []
@@ -141,7 +138,7 @@ def pi_changelog():
     if str(current_pi_values[0]) != str(stored_pi_values[0][0]):
 
         #Call API to get changelog ID.
-        URL = ("%s/changelog/getNewID" % db_address)
+        URL = ("%s/changelog/getNewID" % credentials.db_address)
         get_new_changelog_id = requests.get(url=URL)
         changelog_id = get_new_changelog_id.text
 
@@ -154,7 +151,7 @@ def pi_changelog():
     if str(current_pi_values[1]) != str(stored_pi_values[0][1]):
 
         #Call API to get changelog ID.
-        URL = ("%s/changelog/getNewID" % db_address)
+        URL = ("%s/changelog/getNewID" % credentials.db_address)
         get_new_changelog_id = requests.get(url=URL)
         changelog_id = get_new_changelog_id.text
 
@@ -166,7 +163,7 @@ def pi_changelog():
     if str(sim_carrier) != str(stored_pi_values[0][2]):
 
         #Call API to get changelog ID.
-        URL = ("%s/changelog/getNewID" % db_address)
+        URL = ("%s/changelog/getNewID" % credentials.db_address)
         get_new_changelog_id = requests.get(url=URL)
         changelog_id = get_new_changelog_id.text
 
@@ -178,7 +175,7 @@ def pi_changelog():
     if str(sim_signal) != str(stored_pi_values[0][3]):
 
         #Call API to get changelog ID.
-        URL = ("%s/changelog/getNewID" % db_address)
+        URL = ("%s/changelog/getNewID" % credentials.db_address)
         get_new_changelog_id = requests.get(url=URL)
         changelog_id = get_new_changelog_id.text
 
@@ -191,7 +188,7 @@ def pi_changelog():
     if len(changelog_data) > 0:
         for i in range(len(changelog_data)):
             #Call API to insert any changelogs.
-            URL = ("%s/changelog/insertLog" % db_address)
+            URL = ("%s/changelog/insertLog" % credentials.db_address)
             PARAMS = {'changelog_id' : changelog_data[i][0], 'device_id' : changelog_data[i][1], 'changelog_desc' : changelog_data[i][2], 'previous_status' : changelog_data[i][3], 'current_status' : changelog_data[i][4], 'changelog_date' : changelog_data[i][5], 'changelog_time' : changelog_data[i][6]}
             request_site = requests.post(url=URL, data=PARAMS)
             print(request_site.text)
@@ -199,14 +196,23 @@ def pi_changelog():
         print("No changes to be made.")
     
     #Update record in database.
-    URL = ("%s/pi/updatePI" % db_address)
+    URL = ("%s/pi/updatePI" % credentials.db_address)
     PARAMS = {'iccid' : iccid, 'eth_address' : current_pi_values[0], 'ppp_address' : current_pi_values[1], 'sim_carrier' : sim_carrier, 'sim_signal' : sim_signal, 'check_date' : date.today(), 'check_time' : datetime.now().strftime("%H:%M:%S")}
     request_site = requests.post(url=URL, data=PARAMS)
     print(request_site.text)
 
-#Get data from API of whether the Pi has been activated or is suspended and if to continue with processing. 
-if check_license.get_license(iccid) == True:
-    #Call function.
-    pi_changelog()
+
+#Check if ICCID is able to be retrieved.
+if get_iccid.get_sim_iccid() != "Unable to get ICCID.":
+    iccid = get_iccid.get_sim_iccid()
+    #Get data from API of whether the Pi has been activated or is suspended and if to continue with processing. 
+    if check_license.get_license(iccid) == True:
+        try:
+            #Call function.
+            pi_changelog()
+        except:
+            print("Unable to get Pi data.")
+    else:
+        print("Pi not activated or license suspended.")
 else:
-    print("Pi not activated or license suspended.")
+    print("Unable to get ICCID.")

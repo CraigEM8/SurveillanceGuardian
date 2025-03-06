@@ -1,24 +1,17 @@
-import requests, xmltodict, random, check_license
+import requests, xmltodict, check_license, get_iccid, credentials
 from datetime import date, datetime
-
-#Temporary variables for testing.
-ipAddress = "192.168.1.73"
-username = "admin"
-password = "Concept1"
-iccid = "8935711001091680394"
-db_address = "https://em8database.com/api"
 
 
 #Make API calls to get new device ID, insert record, and return the ID.
 def get_new_device_id():
 
     #Get new unique device ID.
-    URL = ("%s/devices/getNewID" % db_address)
+    URL = ("%s/devices/getNewID" % credentials.db_address)
 
     new_device_id = requests.get(url=URL).json()
     
     #Insert new device record.
-    URL = ("%s/devices/inputDevice" % db_address)
+    URL = ("%s/devices/inputDevice" % credentials.db_address)
 
     PARAMS = {'device_id': new_device_id, 'device_type': '2', 'iccid': iccid}
 
@@ -31,8 +24,8 @@ def get_new_device_id():
 #Before inserting/updating, compare if any changes have occurred and to insert change into changelog table.
 def camera_changelog():
     #Request url.
-    request_url = ("http://%s/ISAPI/System/Video/inputs/channels" % ipAddress)
-    auth = requests.auth.HTTPDigestAuth(username, password)
+    request_url = ("http://%s/ISAPI/System/Video/inputs/channels" % credentials.ipAddress)
+    auth = requests.auth.HTTPDigestAuth(credentials.username, credentials.password)
     response = requests.get(request_url, auth=auth)
 
     #Response code check.
@@ -56,7 +49,7 @@ def camera_changelog():
             camera_id = data[0]
 
             #Call API to check if camera ID exists.
-            URL = ("%s/camera/getCamera" % db_address)
+            URL = ("%s/camera/getCamera" % credentials.db_address)
             PARAMS = {'camera_id' : camera_id, 'iccid' : iccid}
             stored_camera = requests.post(url=URL, data=PARAMS)
 
@@ -76,7 +69,7 @@ def camera_changelog():
                     #Check if camera status is different.
                     if str(current_video_data[i][2]) != str(stored_video_data[i][3]):
                         #Call API to get changelog ID.
-                        URL = ("%s/changelog/getNewID" % db_address)
+                        URL = ("%s/changelog/getNewID" % credentials.db_address)
                         get_new_changelog_id = requests.get(url=URL)
                         changelog_id = get_new_changelog_id.text
 
@@ -93,7 +86,7 @@ def camera_changelog():
         if len(changelog_data) > 0:
             for i in range(len(changelog_data)):
                 #Call API to insert any changelogs.
-                URL = ("%s/changelog/insertLog" % db_address)
+                URL = ("%s/changelog/insertLog" % credentials.db_address)
                 PARAMS = {'changelog_id' : changelog_data[i][0], 'device_id' : changelog_data[i][1], 'changelog_desc' : changelog_data[i][2], 'previous_status' : changelog_data[i][3], 'current_status' : changelog_data[i][4], 'changelog_date' : changelog_data[i][5], 'changelog_time' : changelog_data[i][6]}
                 request_site = requests.post(url=URL, data=PARAMS)
                 print(request_site.text)
@@ -103,8 +96,8 @@ def camera_changelog():
 #Call changelog function then insert or update camera record.
 def get_video_info():
     #Request url.
-    request_url = ("http://%s/ISAPI/System/Video/inputs/channels" % ipAddress)
-    auth = requests.auth.HTTPDigestAuth(username, password)
+    request_url = ("http://%s/ISAPI/System/Video/inputs/channels" % credentials.ipAddress)
+    auth = requests.auth.HTTPDigestAuth(credentials.username, credentials.password)
     response = requests.get(request_url, auth=auth)
 
     #Response code check.
@@ -120,7 +113,7 @@ def get_video_info():
         #Loop through camera data recieved from Hikvision API.
         for data in json_video:
 
-            URL = ("%s/camera/getCamera" % db_address)
+            URL = ("%s/camera/getCamera" % credentials.db_address)
 
             PARAMS = {'camera_id' : str(data["id"]), 'iccid' : iccid}
 
@@ -130,7 +123,7 @@ def get_video_info():
             if len(camera_exists.text) > 3 and camera_exists.status_code != 500:
                 camera_values = camera_exists.json()
 
-                URL = ("%s/camera/updateCamera" % db_address)
+                URL = ("%s/camera/updateCamera" % credentials.db_address)
 
                 PARAMS = {'device_id' : camera_values["device_id"], 'camera_name': data["name"], 'camera_status' : data["resDesc"], 'check_date': date.today(), 'check_time': datetime.now().strftime("%H:%M:%S")}
 
@@ -141,7 +134,7 @@ def get_video_info():
 
                 new_device_id = get_new_device_id()
 
-                URL = ("%s/camera/inputCamera" % db_address)
+                URL = ("%s/camera/inputCamera" % credentials.db_address)
 
                 PARAMS = {'camera_id': str(data["id"]), 'device_id': new_device_id, 'camera_name': data["name"], 'camera_status' : data["resDesc"], 'check_date': date.today(), 'check_time': datetime.now().strftime("%H:%M:%S")}
 
@@ -154,9 +147,17 @@ def get_video_info():
         print(response.text) 
 
 
-#Get data from API of whether the Pi has been activated or is suspended and if to continue with processing. 
-if check_license.get_license(iccid) == True:
-    #Call function to insert or update camera table, and check for any changes to be inserted into changelog table.
-    get_video_info()
+#Check if ICCID is able to be retrieved.
+if get_iccid.get_sim_iccid() != "Unable to get ICCID.":
+    iccid = get_iccid.get_sim_iccid()
+    #Get data from API of whether the Pi has been activated or is suspended and if to continue with processing. 
+    if check_license.get_license(iccid) == True:
+        try:
+            #Call function to insert or update camera table, and check for any changes to be inserted into changelog table.
+            get_video_info()
+        except:
+            print("Unable to get camera data.")
+    else:
+        print("Pi not activated or license suspended.")
 else:
-    print("Pi not activated or license suspended.")
+    print("Unable to get ICCID.")

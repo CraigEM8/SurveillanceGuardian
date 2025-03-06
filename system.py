@@ -1,24 +1,18 @@
-import requests, xmltodict, re, check_license
+import requests, xmltodict, re, check_license, get_iccid, credentials
 from datetime import date, datetime, time
-
-#Temporary variables for testing.
-ipAddress = "192.168.1.143"
-username = "admin"
-password = "Concept1"
-iccid = "8935711001091680394"
-#db_address = "https://em8database.com/api"
-db_address = "http://127.0.0.1:5000"
 
 #Make API calls to get new device ID, insert record, and return the ID.
 def get_new_device_id():
 
+    iccid = get_iccid.get_sim_iccid()
+
     #Get new unique device ID.
-    URL = ("%s/devices/getNewID" % db_address)
+    URL = ("%s/devices/getNewID" % credentials.db_address)
 
     new_device_id = requests.get(url=URL).json()
     
     #Insert new device record.
-    URL = ("%s/devices/inputDevice" % db_address)
+    URL = ("%s/devices/inputDevice" % credentials.db_address)
 
     PARAMS = {'device_id': new_device_id, 'device_type': '3', 'iccid': iccid}
 
@@ -32,8 +26,8 @@ def get_new_device_id():
 #Return the comparision of current time and system time.
 def system_check_datetime():
     #Request url.
-    request_url = ("http://%s/ISAPI/System/time" % ipAddress)
-    auth = requests.auth.HTTPDigestAuth(username, password)
+    request_url = ("http://%s/ISAPI/System/time" % credentials.ipAddress)
+    auth = requests.auth.HTTPDigestAuth(credentials.username, credentials.password)
     response = requests.get(request_url, auth=auth)
 
     #Response code check.
@@ -72,9 +66,10 @@ def system_check_datetime():
 #Check if any changes have occurred between last check and current system values.
 def system_changelog():
     #Request url.
-    request_url = ("http://%s/ISAPI/System/deviceInfo" % ipAddress)
-    auth = requests.auth.HTTPDigestAuth(username, password)
+    request_url = ("http://%s/ISAPI/System/deviceInfo" % credentials.ipAddress)
+    auth = requests.auth.HTTPDigestAuth(credentials.username, credentials.password)
     response = requests.get(request_url, auth=auth)
+    iccid = get_iccid.get_sim_iccid()
 
     #Response code check.
     if response.status_code == 200:
@@ -92,7 +87,7 @@ def system_changelog():
         current_system_data.append([json_system["deviceID"], json_system["deviceName"], 'True', json_system["firmwareVersion"]])
 
         #Call API to check if system ID exists.
-        URL = ("%s/system/getSystem" % db_address)
+        URL = ("%s/system/getSystem" % credentials.db_address)
         PARAMS = {'system_id' : json_system["deviceID"], 'iccid' : iccid}
         stored_system = requests.post(url=URL, data=PARAMS)
         system_datetime = system_check_datetime()
@@ -114,7 +109,7 @@ def system_changelog():
                     #Check if system status is different.
                     if str(current_system_data[i][2]) != str(stored_system_data[i][3]):
                         #Call API to get changelog ID.
-                        URL = ("%s/changelog/getNewID" % db_address)
+                        URL = ("%s/changelog/getNewID" % credentials.db_address)
                         get_new_changelog_id = requests.get(url=URL)
                         changelog_id = get_new_changelog_id.text
 
@@ -127,7 +122,7 @@ def system_changelog():
                     if str(current_system_data[i][1]) != str(stored_system_data[i][2]):
 
                         #Call API to get changelog ID.
-                        URL = ("%s/changelog/getNewID" % db_address)
+                        URL = ("%s/changelog/getNewID" % credentials.db_address)
                         get_new_changelog_id = requests.get(url=URL)
                         changelog_id = get_new_changelog_id.text
 
@@ -140,7 +135,7 @@ def system_changelog():
                     if str(current_system_data[i][3]) != str(stored_system_data[i][4]):
 
                         #Call API to get changelog ID.
-                        URL = ("%s/changelog/getNewID" % db_address)
+                        URL = ("%s/changelog/getNewID" % credentials.db_address)
                         get_new_changelog_id = requests.get(url=URL)
                         changelog_id = get_new_changelog_id.text
 
@@ -153,7 +148,7 @@ def system_changelog():
                     if str(system_datetime) != str(stored_system_data[i][5]):
 
                         #Call API to get changelog ID.
-                        URL = ("%s/changelog/getNewID" % db_address)
+                        URL = ("%s/changelog/getNewID" % credentials.db_address)
                         get_new_changelog_id = requests.get(url=URL)
                         changelog_id = get_new_changelog_id.text
 
@@ -169,7 +164,7 @@ def system_changelog():
         if len(changelog_data) > 0:
             for i in range(len(changelog_data)):
                 #Call API to insert any changelogs.
-                URL = ("%s/changelog/insertLog" % db_address)
+                URL = ("%s/changelog/insertLog" % credentials.db_address)
                 PARAMS = {'changelog_id' : changelog_data[i][0], 'device_id' : changelog_data[i][1], 'changelog_desc' : changelog_data[i][2], 'previous_status' : changelog_data[i][3], 'current_status' : changelog_data[i][4], 'changelog_date' : changelog_data[i][5], 'changelog_time' : changelog_data[i][6]}
                 request_site = requests.post(url=URL, data=PARAMS)
                 print(request_site.text)
@@ -182,9 +177,10 @@ def system_changelog():
 #Insert new or update existing system record.
 def insert_system_info():
     #Request url.
-    request_url = ("http://%s/ISAPI/System/deviceInfo" % ipAddress)
-    auth = requests.auth.HTTPDigestAuth(username, password)
+    request_url = ("http://%s/ISAPI/System/deviceInfo" % credentials.ipAddress)
+    auth = requests.auth.HTTPDigestAuth(credentials.username, credentials.password)
     response = requests.get(request_url, auth=auth)
+    iccid = get_iccid.get_sim_iccid()
 
     #Response code check.
     if response.status_code == 200:
@@ -193,7 +189,7 @@ def insert_system_info():
         json_data = xmltodict.parse(response.content)
         json_system = json_data["DeviceInfo"]
 
-        URL = ("%s/system/getSystem" % db_address)
+        URL = ("%s/system/getSystem" % credentials.db_address)
 
         PARAMS = {'system_id': json_system["deviceID"], 'iccid' : iccid}
 
@@ -202,7 +198,7 @@ def insert_system_info():
         
         #If response length is greater than 3 then the record exists and to update it. Else input a new record. 
         if len(system_exists.text) > 3 and system_exists.status_code != 500:
-            URL = ("%s/system/updateSystem" % db_address)
+            URL = ("%s/system/updateSystem" % credentials.db_address)
 
             PARAMS = {'system_id': json_system["deviceID"], 'system_name': json_system["deviceName"], 'system_status' : 'True', 'system_firmware': json_system["firmwareVersion"], 'system_datetime': system_datetime, 'iccid' : iccid, 'check_date': date.today(), 'check_time': datetime.now().strftime("%H:%M:%S")}
             
@@ -213,7 +209,7 @@ def insert_system_info():
 
             new_device_id = get_new_device_id()
 
-            URL = ("%s/system/inputSystem" % db_address)
+            URL = ("%s/system/inputSystem" % credentials.db_address)
 
             PARAMS = {'system_id': json_system["deviceID"], 'device_id': new_device_id, 'system_name': json_system["deviceName"], 'system_status' : 'True', 'system_firmware': json_system["firmwareVersion"], 'system_datetime': system_datetime, 'check_date': date.today(), 'check_time': datetime.now().strftime("%H:%M:%S")}
 
@@ -226,10 +222,17 @@ def insert_system_info():
         print(response.status_code)
 
 
-#Get data from API of whether the Pi has been activated or is suspended and if to continue with processing. 
-if check_license.get_license(iccid) == True:
-    #Call function to insert or update system table, and check for any changes to be inserted into changelog table.
-    system_changelog()
+#Check if ICCID is able to be retrieved.
+if get_iccid.get_sim_iccid() != "Unable to get ICCID.":
+    iccid = get_iccid.get_sim_iccid()
+    #Get data from API of whether the Pi has been activated or is suspended and if to continue with processing. 
+    if check_license.get_license(iccid) == True:
+        try:
+            #Call function to insert or update system table, and check for any changes to be inserted into changelog table.
+            system_changelog()
+        except:
+            print("Unable to get system data.")
+    else:
+        print("Pi not activated or license suspended.")
 else:
-    print("Pi not activated or license suspended.")
-
+    print("Unable to get ICCID.")

@@ -7,13 +7,13 @@ sudo apt-get install rpi-connect-lite
 rpi-connect on
 rpi-connect signin
 pip install pymysql --break-system-packages
-pip install Flask==3.1.0 --break-system-packages
-pip install flask-sqlalchemy==3.0.0 --break-system-packages
-pip install flask-script==2.0.6 --break-system-packages
-pip install DateTime==5.5 --break-system-packages
-pip install os-sys==2.1.4 --break-system-packages
-pip install requests==2.32.3 --break-system-packages
-pip install xmltodict==0.14.2 --break-system-packages
+pip install Flask --break-system-packages
+pip install flask-sqlalchemy --break-system-packages
+pip install flask-script --break-system-packages
+pip install DateTime --break-system-packages
+pip install os-sys --break-system-packages
+pip install requests --break-system-packages
+pip install xmltodict --break-system-packages
 pip install netifaces --break-system-packages
 pip3 install pyserial --break-system-packages
 echo "Process Complete."
