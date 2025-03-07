@@ -1,6 +1,9 @@
-import requests, xmltodict, check_license, get_iccid, credentials
+import requests, xmltodict, check_license, credentials
 from datetime import date, datetime
 
+iccid = credentials.iccid
+
+#iccid = get_iccid.get_sim_iccid()
 
 #Make API calls to get new device ID, insert record, and return the ID.
 def get_new_device_id():
@@ -79,7 +82,6 @@ def camera_changelog():
                         print(f'{current_video_data[i][0]} status changed from output {stored_video_data[i][3]} to {current_video_data[i][2]} at {datetime.now().strftime("%H:%M:%S")}.')
 
                     else:
-
                         print(f'Camera {current_video_data[i][0]} is showing no changes at {datetime.now().strftime("%H:%M:%S")}.')
 
         #Check if any changes are to be made.
@@ -148,8 +150,7 @@ def get_video_info():
 
 
 #Check if ICCID is able to be retrieved.
-if get_iccid.get_sim_iccid() != "Unable to get ICCID.":
-    iccid = get_iccid.get_sim_iccid()
+if iccid != "Unable to get ICCID.":
     #Get data from API of whether the Pi has been activated or is suspended and if to continue with processing. 
     if check_license.get_license(iccid) == True:
         try:

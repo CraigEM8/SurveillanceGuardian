@@ -8,6 +8,7 @@ def get_license(iccid):
     PARAMS = {'iccid' : iccid}
     pi_values = requests.post(url=URL, data=PARAMS)
 
+    #print(pi_values)
     #Check if server returns internal error code.
     if pi_values.status_code != 500 and pi_values.text != "No ICCID found.":
         #If server responds, get active and suspend status from response.

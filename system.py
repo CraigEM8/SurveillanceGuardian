@@ -1,10 +1,11 @@
-import requests, xmltodict, re, check_license, get_iccid, credentials
+import requests, xmltodict, re, check_license, credentials
 from datetime import date, datetime, time
+
+#iccid = get_iccid.get_sim_iccid()
+iccid = credentials.iccid
 
 #Make API calls to get new device ID, insert record, and return the ID.
 def get_new_device_id():
-
-    iccid = get_iccid.get_sim_iccid()
 
     #Get new unique device ID.
     URL = ("%s/devices/getNewID" % credentials.db_address)
@@ -69,7 +70,6 @@ def system_changelog():
     request_url = ("http://%s/ISAPI/System/deviceInfo" % credentials.ipAddress)
     auth = requests.auth.HTTPDigestAuth(credentials.username, credentials.password)
     response = requests.get(request_url, auth=auth)
-    iccid = get_iccid.get_sim_iccid()
 
     #Response code check.
     if response.status_code == 200:
@@ -180,7 +180,6 @@ def insert_system_info():
     request_url = ("http://%s/ISAPI/System/deviceInfo" % credentials.ipAddress)
     auth = requests.auth.HTTPDigestAuth(credentials.username, credentials.password)
     response = requests.get(request_url, auth=auth)
-    iccid = get_iccid.get_sim_iccid()
 
     #Response code check.
     if response.status_code == 200:
@@ -200,7 +199,7 @@ def insert_system_info():
         if len(system_exists.text) > 3 and system_exists.status_code != 500:
             URL = ("%s/system/updateSystem" % credentials.db_address)
 
-            PARAMS = {'system_id': json_system["deviceID"], 'system_name': json_system["deviceName"], 'system_status' : 'True', 'system_firmware': json_system["firmwareVersion"], 'system_datetime': system_datetime, 'iccid' : iccid, 'check_date': date.today(), 'check_time': datetime.now().strftime("%H:%M:%S")}
+            PARAMS = {'system_id': json_system["deviceID"], 'system_name': json_system["deviceName"], 'system_status' : 'True', 'system_firmware': json_system["firmwareVersion"], 'is_datetime_correct': system_datetime, 'iccid' : iccid, 'check_date': date.today(), 'check_time': datetime.now().strftime("%H:%M:%S")}
             
             r = requests.post(url=URL, data=PARAMS)
 
@@ -211,7 +210,7 @@ def insert_system_info():
 
             URL = ("%s/system/inputSystem" % credentials.db_address)
 
-            PARAMS = {'system_id': json_system["deviceID"], 'device_id': new_device_id, 'system_name': json_system["deviceName"], 'system_status' : 'True', 'system_firmware': json_system["firmwareVersion"], 'system_datetime': system_datetime, 'check_date': date.today(), 'check_time': datetime.now().strftime("%H:%M:%S")}
+            PARAMS = {'system_id': json_system["deviceID"], 'device_id': new_device_id, 'system_name': json_system["deviceName"], 'system_status' : 'True', 'system_firmware': json_system["firmwareVersion"], 'is_datetime_correct': system_datetime, 'check_date': date.today(), 'check_time': datetime.now().strftime("%H:%M:%S")}
 
             r = requests.post(url=URL, data=PARAMS)
 
@@ -223,8 +222,7 @@ def insert_system_info():
 
 
 #Check if ICCID is able to be retrieved.
-if get_iccid.get_sim_iccid() != "Unable to get ICCID.":
-    iccid = get_iccid.get_sim_iccid()
+if iccid != "Unable to get ICCID.":
     #Get data from API of whether the Pi has been activated or is suspended and if to continue with processing. 
     if check_license.get_license(iccid) == True:
         try:

@@ -1,6 +1,7 @@
-import netifaces, requests, serial, re, os, subprocess, time, check_license, credentials, get_iccid
+import netifaces, requests, serial, re, os, subprocess, time, check_license, credentials
 from datetime import date, datetime
 
+iccid = credentials.iccid
 
 #Check if interface is live.
 def is_interface_up(interface):
@@ -203,8 +204,7 @@ def pi_changelog():
 
 
 #Check if ICCID is able to be retrieved.
-if get_iccid.get_sim_iccid() != "Unable to get ICCID.":
-    iccid = get_iccid.get_sim_iccid()
+if iccid != "Unable to get ICCID.":
     #Get data from API of whether the Pi has been activated or is suspended and if to continue with processing. 
     if check_license.get_license(iccid) == True:
         try:

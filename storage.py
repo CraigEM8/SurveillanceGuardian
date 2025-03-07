@@ -1,6 +1,7 @@
-import requests, xmltodict, check_license, get_iccid, credentials
+import requests, xmltodict, check_license, credentials
 from datetime import date, datetime
 
+iccid = credentials.iccid
 
 #Make API calls to get new device ID, insert record, and return the ID.
 def get_new_device_id():
@@ -137,8 +138,7 @@ def insert_storage_log():
 
 
 #Check if ICCID is able to be retrieved.
-if get_iccid.get_sim_iccid() != "Unable to get ICCID.":
-    iccid = get_iccid.get_sim_iccid()
+if iccid != "Unable to get ICCID.":
     #Get data from API of whether the Pi has been activated or is suspended and if to continue with processing. 
     if check_license.get_license(iccid) == True:
         try:
