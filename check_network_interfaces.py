@@ -51,8 +51,12 @@ def get_signal_strength():
     # Open serial port, and write AT command to get signal strength.
     ser = serial.Serial('/dev/ttyS0', 115200, timeout=5)
     ser.write("AT+CSQ\r".encode())
-    response =  ser.readall()
+    response = ser.readall()
     response_array = re.split(': |\,', str(response))
+
+    print(str(response))
+    print(response_array)
+    
     strength = response_array[1]
     signal_strength = 'Signal condition is Unknown.'
 
