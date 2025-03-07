@@ -546,7 +546,7 @@ def get_license():
         #Query if Pi already exists in database.
         mycursor.execute(f"SELECT `activate_status`, `suspend_status` FROM `sg_pi` WHERE `iccid` = '{iccid}'")
         pi_exists = mycursor.fetchall()
-
+        
         #If Pi exists return database values.
         if len(pi_exists) > 0:
             return pi_exists

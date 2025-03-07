@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+#!/usr/bin/python
 import netifaces, requests, serial, re, os, subprocess, time, check_license, credentials
 from datetime import date, datetime
 
