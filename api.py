@@ -117,7 +117,7 @@ def insert_device():
     if request.method == 'POST':
         device_id = request.form['device_id']
         device_type = request.form['device_type']
-        iccid = request.form['iccid']
+        serial_no = request.form['serial_no']
 
         mycursor = mydb.cursor()
 
@@ -127,49 +127,11 @@ def insert_device():
 
         #If device exists go to insert database record.
         if len(device_exists) == 0:
-            mycursor.execute(f"INSERT INTO `sg_devices` (`device_id`, `device_type`, `iccid`) VALUES ('{device_id}', '{device_type}', '{iccid}')")
+            mycursor.execute(f"INSERT INTO `sg_devices` (`device_id`, `device_type`, `serial_no`) VALUES ('{device_id}', '{device_type}', '{serial_no}')")
             mydb.commit()
-            return ("record input")
+            return ("New Device Input")
         else:
             return ("Device record already exists in database.")
-
-
-@app.route('/devices/getDeviceID', methods=['POST'])
-def get_device_id():
-    #Request parameters.
-    if request.method == 'POST':
-        device_id = request.form['device_id']
-
-        mycursor = mydb.cursor()
-
-        #Query database for existing system records.
-        mycursor.execute(f"SELECT * FROM `sg_system` WHERE `device_id` = '{device_id}'")
-        query_result = mycursor.fetchall()
-
-        getData = []
-
-        for data in query_result:
-            getData = {"device_id" : data[0], "device_type" : data[1], "iccid" : data[2]}
-
-        return getData
-
-
-#Get all devices linked to an ICCID.
-@app.route('/devices/getDevices/<int:iccid>')
-def getDevices(iccid):
-    
-    mycursor = mydb.cursor()
-
-    #Get Device data for specified ICCID.
-    mycursor.execute(f"SELECT `device_id`, `device_type` FROM `sg_devices` WHERE `iccid` = '{iccid}'")
-
-    myresult = mycursor.fetchall()
-
-    #Check if query returned data.
-    if myresult:
-        return myresult
-    else:
-        return (f"No Devices found for ICCID: {iccid}")
 
         
 ###########################################################################
@@ -539,19 +501,19 @@ def get_license():
 
     #Request parameters.
     if request.method == 'POST':
-        iccid = request.form['iccid']
+        serial_no = request.form['serial_no']
 
         mycursor = mydb.cursor()
 
         #Query if Pi already exists in database.
-        mycursor.execute(f"SELECT `activate_status`, `suspend_status` FROM `sg_pi` WHERE `iccid` = '{iccid}'")
+        mycursor.execute(f"SELECT `activate_status`, `suspend_status` FROM `sg_pi` WHERE `serial_no` = '{serial_no}'")
         pi_exists = mycursor.fetchall()
         
         #If Pi exists return database values.
         if len(pi_exists) > 0:
             return pi_exists
         else:
-            return ("No ICCID found.")
+            return ("No serial found.")
         
 
 #Get Pi IP Info.
@@ -560,19 +522,19 @@ def get_pi():
 
     #Request parameters.
     if request.method == 'POST':
-        iccid = request.form['iccid']
+        serial_no = request.form['serial_no']
 
         mycursor = mydb.cursor()
 
         #Query if Pi already exists in database.
-        mycursor.execute(f"SELECT `eth_address`, `ppp_address`, `sim_carrier`, `sim_signal` FROM `sg_pi` WHERE `iccid` = '{iccid}'")
+        mycursor.execute(f"SELECT `eth_address`, `ppp_address`, `sim_carrier`, `sim_signal` FROM `sg_pi` WHERE `serial_no` = '{serial_no}'")
         pi_exists = mycursor.fetchall()
 
         #If Pi exists return database values.
         if len(pi_exists) > 0:
             return pi_exists
         else:
-            return ("No ICCID found.")
+            return ("No serial found.")
         
 
 #Update an existing Pi record by ICCID.
@@ -581,7 +543,7 @@ def update_pi():
 
     #Request parameters.
     if request.method == 'POST':
-        iccid = request.form['iccid']
+        serial_no = request.form['serial_no']
         eth_address = request.form['eth_address']
         ppp_address = request.form['ppp_address']
         sim_carrier = request.form['sim_carrier']
@@ -592,16 +554,16 @@ def update_pi():
         mycursor = mydb.cursor()
 
         #Query if Pi already exists in database.
-        mycursor.execute(f"SELECT * FROM `sg_pi` WHERE `iccid` = '{iccid}'")
+        mycursor.execute(f"SELECT * FROM `sg_pi` WHERE `serial_no` = '{serial_no}'")
         pi_exists = mycursor.fetchall()
 
         #If Pi exists go to update database record.
         if len(pi_exists) > 0:
-            mycursor.execute(f"UPDATE `sg_pi` SET `eth_address` = '{eth_address}', `ppp_address` = '{ppp_address}', `sim_carrier` = '{sim_carrier}', `sim_signal` = '{sim_signal}', `check_date` = '{check_date}', `check_time` = '{check_time}' WHERE `iccid` = '{iccid}'")
+            mycursor.execute(f"UPDATE `sg_pi` SET `eth_address` = '{eth_address}', `ppp_address` = '{ppp_address}', `sim_carrier` = '{sim_carrier}', `sim_signal` = '{sim_signal}', `check_date` = '{check_date}', `check_time` = '{check_time}' WHERE `serial_no` = '{serial_no}'")
             mydb.commit()
             return ("Pi Record Updated.")
         else:
-            return ("No ICCID found.")
+            return ("No serial found.")
 
 
 if __name__ == '__main__':
